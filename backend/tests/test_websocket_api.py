@@ -30,6 +30,7 @@ def build_test_app(poll_fn=None):
     session_factory = sessionmaker(bind=engine)
 
     app = create_app(
+        engine=engine,
         session_factory=session_factory,
         poll_fn=poll_fn if poll_fn is not None else (lambda: []),
     )

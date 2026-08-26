@@ -120,6 +120,54 @@ vehicle movement on the dashboard. 5 seconds is comfortably inside MBTA's
 public rate limits and leaves headroom to tighten later if profiling shows
 it's worth it — an easy constant to change, not an architectural commitment.
 
+## Docker: multi-stage build, non-root user
+
+**Chosen:** `backend/Dockerfile` builds dependencies into a venv in a
+`builder` stage, then copies just that venv plus the app code into a slim
+final image, running as a created non-root user.
+
+**Alternatives considered:** a single-stage `pip install` directly into the
+final image. Since every dependency here ships a pre-built binary wheel
+(notably `psycopg-binary`, chosen specifically to avoid needing a C compiler
+in the image), the size difference is modest — but multi-stage still keeps
+pip's cache and installer metadata out of the shipped image, and it's the
+default professional pattern worth using even when the win is small, since
+it costs nothing extra to maintain here. Running as root inside the
+container was rejected outright — if the app process were ever compromised,
+running as an unprivileged user limits what it could do to the container.
+
+## Schema bootstrap: `Base.metadata.create_all()`, not an Alembic migration yet
+
+**Chosen:** the FastAPI app calls `Base.metadata.create_all(bind=engine)` on
+startup (see `app/main.py`'s `lifespan`) to create any missing tables.
+
+**Why not Alembic**, despite it being the chosen migration tool (see above):
+generating a correct *first* migration with `alembic revision --autogenerate`
+needs a live database connection to diff against, and no Postgres instance
+exists yet at this point in the project (Docker itself was only just being
+installed). Hand-writing that first migration blind, with no database to
+test it against, risks it being subtly wrong in ways `create_all` (which
+just reflects the SQLAlchemy models directly) cannot be. Once a real
+Postgres instance exists (local via `docker compose up`, or a free-tier
+Neon/Supabase instance), the next step is: run `alembic init`, `alembic
+revision --autogenerate -m "initial schema"` against it, verify the
+generated migration, then swap this `create_all()` call for `alembic upgrade
+head`. Tracked as a follow-up, not forgotten scope.
+
+## CI/CD scope for v1: test + Docker build validation, not live deployment
+
+**Chosen:** `.github/workflows/ci.yml` runs the pytest suite and validates
+that `docker build` succeeds, on every push/PR. It does not deploy anywhere.
+
+**Why:** the $0 budget constraint means there's no paid VM to deploy to, and
+no free hosting target (e.g. Fly.io, Render) has been chosen yet — there
+isn't even a GitHub remote configured for this repo yet. Building "deploy to
+nowhere" would be speculative work with no way to verify it actually works.
+Once a free hosting target is chosen, the natural next addition is a job
+that builds and pushes the image to GitHub Container Registry (free, and
+authenticates via the repo's built-in `GITHUB_TOKEN` — no extra secrets
+needed) so that target can pull it.
+
 ## Testing: pytest + in-memory SQLite, not a live Postgres in CI
 
 **Chosen:** repository/unit tests run against a fresh in-memory SQLite database

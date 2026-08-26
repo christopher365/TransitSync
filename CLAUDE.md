@@ -35,6 +35,6 @@ Treat the metrics above as real requirements to design and measure toward, not j
 6. ✅ Design database schema (PostgreSQL) — `routes`, `stops`, `stop_routes` (static reference data) and `vehicle_positions` (append-only GPS log) all in place
 7. ✅ Build data ingestion pipeline layer — `MbtaClient` + `VehicleIngestionService` poll MBTA `/vehicles` and record into `vehicle_positions`
 8. ✅ Build FastAPI + WebSocket real-time API layer — `app/main.py`'s `/ws/vehicles` endpoint, `VehiclePoller` (5s interval, async-to-sync bridge via `asyncio.to_thread`), `ConnectionManager` broadcast, `VehiclePositionOut` schema
-9. ⬜ Containerize & set up CI/CD (Docker install still pending on this machine)
+9. 🔄 Containerize & set up CI/CD — `backend/Dockerfile` (multi-stage, non-root user), `docker-compose.yml` (backend + Postgres 16), `.github/workflows/ci.yml` (pytest + docker build validation) all written 2026-08-26. Docker Desktop itself is NOT yet installed on this machine (needs WSL2, which also isn't installed — both require an interactive install/restart); none of this has been run end-to-end yet. Schema bootstrap uses `Base.metadata.create_all()` for now — see "Schema bootstrap" in `docs/architecture-decisions.md` for why Alembic's first migration is deferred until a real Postgres exists to autogenerate against.
 
 Update this section as steps complete so future sessions (in either Claude Code or Claude/Cowork) know where the project actually stands.

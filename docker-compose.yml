@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: transitsync
+      POSTGRES_PASSWORD: transitsync
+      POSTGRES_DB: transitsync
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U transitsync"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://transitsync:transitsync@db:5432/transitsync
+      MBTA_API_BASE_URL: https://api-v3.mbta.com
+      # MBTA_API_KEY: set this if you register for a (free) MBTA API key —
+      # unauthenticated requests work but at a lower rate limit.
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

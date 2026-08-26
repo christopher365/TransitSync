@@ -3,12 +3,14 @@ from collections.abc import Callable
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.db.base import Base
 from app.db.models import VehiclePosition
 from app.db.repositories.vehicle_position_repository import SqlAlchemyVehiclePositionRepository
-from app.db.session import SessionLocal, session_scope
+from app.db.session import SessionLocal, engine as default_engine, session_scope
 from app.ingestion.mbta_client import MbtaClient
 from app.ingestion.vehicle_ingestion_service import VehicleIngestionService
 from app.realtime.connection_manager import ConnectionManager
@@ -17,6 +19,7 @@ from app.schemas.vehicle_position import VehiclePositionOut
 
 
 def create_app(
+    engine: Engine = default_engine,
     session_factory: Callable[[], Session] = SessionLocal,
     poll_fn: Callable[[], list[VehiclePosition]] | None = None,
     poll_interval_seconds: float = 5.0,
@@ -51,6 +54,11 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        # Stand-in for a real Alembic migration until a live Postgres exists
+        # to autogenerate one against (see docs/architecture-decisions.md).
+        # Safe to call every startup: create_all only creates tables that
+        # don't already exist yet.
+        Base.metadata.create_all(bind=engine)
         poller.start()
         yield
         await poller.stop()
