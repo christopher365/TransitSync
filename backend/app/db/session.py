@@ -1,4 +1,5 @@
-from collections.abc import Generator
+from collections.abc import Callable, Generator
+from contextlib import contextmanager
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -21,3 +22,20 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+
+
+@contextmanager
+def session_scope(session_factory: Callable[[], Session] = SessionLocal) -> Generator[Session, None, None]:
+    """One database session for one unit of work, for code that isn't a
+    FastAPI request/websocket handler (e.g. the background poller) and so
+    can't use `get_db` via `Depends`.
+
+    Takes the session factory as a parameter (defaulting to the real
+    `SessionLocal`) so tests can pass a factory bound to an in-memory SQLite
+    engine instead, without this function needing to know that's happening.
+    """
+    session = session_factory()
+    try:
+        yield session
+    finally:
+        session.close()

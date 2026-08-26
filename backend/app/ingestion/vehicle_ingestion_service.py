@@ -18,9 +18,12 @@ class VehicleIngestionService:
         self._mbta_client = mbta_client
         self._repository = repository
 
-    def run_once(self) -> int:
-        """Runs a single poll cycle and returns how many positions were recorded."""
+    def run_once(self) -> list[VehiclePosition]:
+        """Runs a single poll cycle and returns every position recorded, so
+        callers (e.g. the WebSocket broadcaster) know exactly what's new.
+        """
         readings = self._mbta_client.get_vehicles()
+        recorded_positions = []
 
         for reading in readings:
             position = VehiclePosition(
@@ -34,6 +37,6 @@ class VehicleIngestionService:
                 current_status=reading.current_status,
                 updated_at=reading.updated_at,
             )
-            self._repository.record(position)
+            recorded_positions.append(self._repository.record(position))
 
-        return len(readings)
+        return recorded_positions

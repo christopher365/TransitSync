@@ -36,15 +36,23 @@ class SqlAlchemyVehiclePositionRepository(VehiclePositionRepositoryInterface):
         if not route_id or not route_id.strip():
             raise ValueError("route_id must be a non-empty string")
 
-        latest_per_vehicle = (
-            select(
-                VehiclePosition.vehicle_id,
-                func.max(VehiclePosition.recorded_at).label("max_recorded_at"),
+        return self._latest_positions(route_id_filter=route_id)
+
+    def get_all_latest_positions(self) -> list[VehiclePosition]:
+        return self._latest_positions(route_id_filter=None)
+
+    def _latest_positions(self, route_id_filter: str | None) -> list[VehiclePosition]:
+        latest_per_vehicle_query = select(
+            VehiclePosition.vehicle_id,
+            func.max(VehiclePosition.recorded_at).label("max_recorded_at"),
+        ).group_by(VehiclePosition.vehicle_id)
+
+        if route_id_filter is not None:
+            latest_per_vehicle_query = latest_per_vehicle_query.where(
+                VehiclePosition.route_id == route_id_filter
             )
-            .where(VehiclePosition.route_id == route_id)
-            .group_by(VehiclePosition.vehicle_id)
-            .subquery()
-        )
+
+        latest_per_vehicle = latest_per_vehicle_query.subquery()
         statement = select(VehiclePosition).join(
             latest_per_vehicle,
             and_(

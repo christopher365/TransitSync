@@ -99,3 +99,24 @@ def test_get_latest_for_route_returns_empty_list_when_no_vehicles(db_session: Se
     results = repo.get_latest_for_route("does-not-exist")
 
     assert results == []
+
+
+def test_get_all_latest_positions_returns_one_row_per_vehicle_across_routes(
+    db_session: Session,
+) -> None:
+    repo = SqlAlchemyVehiclePositionRepository(db_session)
+    repo.record(make_position(vehicle_id="y1", route_id="Red"))
+    repo.record(make_position(vehicle_id="y2", route_id="Orange"))
+    repo.record(make_position(vehicle_id="y1", route_id="Red"))  # newer report, same vehicle
+
+    results = repo.get_all_latest_positions()
+
+    assert {p.vehicle_id for p in results} == {"y1", "y2"}
+
+
+def test_get_all_latest_positions_returns_empty_list_when_no_positions(db_session: Session) -> None:
+    repo = SqlAlchemyVehiclePositionRepository(db_session)
+
+    results = repo.get_all_latest_positions()
+
+    assert results == []

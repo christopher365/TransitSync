@@ -77,6 +77,49 @@ of a streaming platform isn't justified. This is the simplest design that
 meets the sub-500ms client-sync target, since polling interval and broadcast
 are both in-process.
 
+## Bridging sync ingestion into the async WebSocket server: asyncio.to_thread
+
+**Chosen:** the ingestion pipeline (HTTP call + DB write) stays fully
+synchronous, per the earlier ingestion-pattern decision. `VehiclePoller`
+(the background polling loop) is async — FastAPI's WebSocket connections
+require an async event loop — and calls the sync poll function via
+`await asyncio.to_thread(poll_fn)` on each cycle.
+
+**Alternatives considered:** rewriting the MBTA client and repository layer
+as async (`httpx.AsyncClient`, SQLAlchemy's `AsyncSession`). Rejected for
+v1 — it would mean two parallel implementations of the same repository
+pattern (sync for tests/scripts, async for the live server) for a workload
+that polls once every few seconds, not thousands of times a second. The
+event-loop-blocking risk `asyncio.to_thread` exists to solve only matters
+because the *same* process also serves WebSocket clients; isolating the
+blocking work onto a worker thread solves that without an async rewrite.
+
+## Application factory pattern: `create_app()` instead of a module-level app
+
+**Chosen:** `app/main.py` exposes `create_app(session_factory=..., poll_fn=...)`,
+which builds and returns a fresh `FastAPI` instance; a plain `app = create_app()`
+at module level is what Uvicorn actually runs.
+
+**Alternatives considered:** building `app`, the DB engine, and the poller
+directly at module scope (as most FastAPI tutorials show). Rejected —
+tests would then have no way to swap in an in-memory SQLite database or a
+network-free poll function; they'd either need a real Postgres and a real
+MBTA connection just to test that a WebSocket sends a JSON message, or
+they'd have to monkeypatch module globals, which gets fragile fast. The
+factory makes "what this app depends on" explicit and swappable at the one
+place it's constructed.
+
+## Poll interval: 5 seconds
+
+**Chosen:** the poller re-fetches MBTA vehicle positions every 5 seconds.
+
+**Why:** MBTA's vehicles typically update server-side every ~10–15 seconds
+regardless of how often we ask, so polling much faster wastes requests
+without fresher data; polling much slower would visibly lag behind actual
+vehicle movement on the dashboard. 5 seconds is comfortably inside MBTA's
+public rate limits and leaves headroom to tighten later if profiling shows
+it's worth it — an easy constant to change, not an architectural commitment.
+
 ## Testing: pytest + in-memory SQLite, not a live Postgres in CI
 
 **Chosen:** repository/unit tests run against a fresh in-memory SQLite database

@@ -34,23 +34,23 @@ def make_reading(vehicle_id: str = "y1234") -> VehicleReading:
     )
 
 
-def test_run_once_records_every_reading(db_session: Session) -> None:
+def test_run_once_records_and_returns_every_reading(db_session: Session) -> None:
     stub_client = StubMbtaClient([make_reading("y1"), make_reading("y2")])
     repository = SqlAlchemyVehiclePositionRepository(db_session)
     service = VehicleIngestionService(stub_client, repository)
 
-    ingested_count = service.run_once()
+    recorded = service.run_once()
 
-    assert ingested_count == 2
+    assert {p.vehicle_id for p in recorded} == {"y1", "y2"}
     assert repository.get_latest_for_vehicle("y1") is not None
     assert repository.get_latest_for_vehicle("y2") is not None
 
 
-def test_run_once_returns_zero_when_no_vehicles_reported(db_session: Session) -> None:
+def test_run_once_returns_empty_list_when_no_vehicles_reported(db_session: Session) -> None:
     stub_client = StubMbtaClient([])
     repository = SqlAlchemyVehiclePositionRepository(db_session)
     service = VehicleIngestionService(stub_client, repository)
 
-    ingested_count = service.run_once()
+    recorded = service.run_once()
 
-    assert ingested_count == 0
+    assert recorded == []

@@ -32,9 +32,9 @@ Treat the metrics above as real requirements to design and measure toward, not j
 3. ✅ Verify/set up local dev tooling (Python 3.14, Git 2.55 confirmed installed; Docker still deferred to step 9)
 4. ✅ Choose high-level architecture & tech stack — see `docs/architecture-decisions.md` for the trade-off notes (FastAPI, Postgres + SQLAlchemy 2.0 + Alembic, Repository pattern, poll→ingest→broadcast, MBTA as data source)
 5. ✅ Scaffold repository structure & Git init (`backend/app/...`, first commit made 2026-08-25)
-6. 🔄 Design database schema (PostgreSQL) — `routes`, `stops`, `stop_routes` (static reference data) done; `vehicle_positions` (the real-time telemetry table) in progress
-7. ⬜ Build data ingestion pipeline layer (poll MBTA `/vehicles`, upsert/log to Postgres, broadcast)
-8. ⬜ Build FastAPI + WebSocket real-time API layer
-9. ⬜ Containerize & set up CI/CD
+6. ✅ Design database schema (PostgreSQL) — `routes`, `stops`, `stop_routes` (static reference data) and `vehicle_positions` (append-only GPS log) all in place
+7. ✅ Build data ingestion pipeline layer — `MbtaClient` + `VehicleIngestionService` poll MBTA `/vehicles` and record into `vehicle_positions`
+8. ✅ Build FastAPI + WebSocket real-time API layer — `app/main.py`'s `/ws/vehicles` endpoint, `VehiclePoller` (5s interval, async-to-sync bridge via `asyncio.to_thread`), `ConnectionManager` broadcast, `VehiclePositionOut` schema
+9. ⬜ Containerize & set up CI/CD (Docker install still pending on this machine)
 
 Update this section as steps complete so future sessions (in either Claude Code or Claude/Cowork) know where the project actually stands.

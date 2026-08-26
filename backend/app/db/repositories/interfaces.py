@@ -47,3 +47,7 @@ class VehiclePositionRepositoryInterface(ABC):
     @abstractmethod
     def get_latest_for_route(self, route_id: str) -> list[VehiclePosition]:
         raise NotImplementedError
+
+    @abstractmethod
+    def get_all_latest_positions(self) -> list[VehiclePosition]:
+        raise NotImplementedError
