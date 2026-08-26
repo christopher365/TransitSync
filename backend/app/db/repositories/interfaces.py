@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from app.db.models import Route, Stop
+from app.db.models import Route, Stop, VehiclePosition
 
 
 class StopRepositoryInterface(ABC):
@@ -25,4 +25,25 @@ class StopRepositoryInterface(ABC):
 
     @abstractmethod
     def upsert(self, stop: Stop) -> Stop:
+        raise NotImplementedError
+
+
+class VehiclePositionRepositoryInterface(ABC):
+    """Abstraction over vehicle position persistence.
+
+    Kept separate from StopRepositoryInterface (Interface Segregation): the
+    ingestion pipeline and the live API depend only on the position-reading
+    and -recording operations they actually need.
+    """
+
+    @abstractmethod
+    def record(self, position: VehiclePosition) -> VehiclePosition:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_latest_for_vehicle(self, vehicle_id: str) -> VehiclePosition | None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_latest_for_route(self, route_id: str) -> list[VehiclePosition]:
         raise NotImplementedError
