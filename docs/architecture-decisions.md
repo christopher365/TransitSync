@@ -328,6 +328,23 @@ vehicles into one circle, so there's no sensible way to partially dim
 "some of the vehicles inside this bubble." Filtering sidesteps that
 entirely and matches "singles out" more literally besides.
 
+## Bug fix: bare `postgresql://` URLs crashing the app at startup
+
+**Found deploying to Render:** the first real deploy against Neon crashed
+immediately with `ModuleNotFoundError: No module named 'psycopg2'`. Root
+cause: `DATABASE_URL` was set to the connection string exactly as every
+Postgres host hands it out — `postgresql://...` — but SQLAlchemy defaults
+that bare scheme to the `psycopg2` driver, which this project never
+installed (only `psycopg`, v3). Locally this had been worked around by
+remembering to manually edit the scheme to `postgresql+psycopg://`; on a
+real host, that manual step got missed.
+
+**Fix:** `normalize_database_url()` in `app/db/session.py` rewrites a bare
+`postgresql://` URL to `postgresql+psycopg://` before it ever reaches
+`create_engine`, so the connection string works exactly as given by Neon,
+Render, Supabase, or any other host — no special edit required, and no way
+to silently forget it again.
+
 ## Deployment target: Render (app hosting) + Neon (Postgres)
 
 **Chosen:** Render's free tier for both the backend (Docker web service)

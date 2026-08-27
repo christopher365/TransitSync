@@ -6,7 +6,23 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import settings
 
-engine = create_engine(settings.database_url, pool_pre_ping=True)
+
+def normalize_database_url(url: str) -> str:
+    """Every Postgres host/tool hands you a bare `postgresql://` URL — but
+    SQLAlchemy defaults that scheme to the psycopg2 driver, which isn't
+    installed in this project (only psycopg, v3, is). Without this, pasting
+    a connection string exactly as a host gives it crashes the app at
+    startup with "No module named 'psycopg2'" — a real failure this project
+    hit deploying against Neon. Rewriting the scheme here means the app
+    just works with the connection string as given, instead of requiring
+    everyone who configures it to remember an easy-to-miss edit.
+    """
+    if url.startswith("postgresql://"):
+        return url.replace("postgresql://", "postgresql+psycopg://", 1)
+    return url
+
+
+engine = create_engine(normalize_database_url(settings.database_url), pool_pre_ping=True)
 
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
