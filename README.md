@@ -4,7 +4,9 @@ A real-time transit telemetry dashboard for Boston's MBTA system. It continuousl
 
 Built to handle high-frequency data streams end-to-end — an ingestion pipeline, a real-time API layer, and a frontend that turns raw positions into something a rider can actually use, not just a live map: stop search, arrival predictions, and service alerts.
 
-**Live demo:** _deploying now — link coming soon_
+**Live demo:** [transitsync-frontend.onrender.com](https://transitsync-frontend.onrender.com) (backend API: [transitsync-backend.onrender.com](https://transitsync-backend.onrender.com), health check at `/health`)
+
+> Running on Render's free tier: the backend spins down after 15 minutes of inactivity and takes ~30-50 seconds to wake up on the next visit. If the map looks empty at first, give it a moment.
 
 <!-- Add a screenshot or GIF here once you have one, e.g.: ![TransitSync screenshot](docs/screenshot.png) -->
 
