@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { distinctRouteIds, formatArrival, minutesUntil, routeColor } from "./predictionFormat";
+import {
+  distinctRouteIds,
+  formatArrival,
+  isStalePrediction,
+  minutesUntil,
+  routeColor,
+} from "./predictionFormat";
 
 describe("minutesUntil", () => {
   it("returns null when there is no time", () => {
@@ -55,6 +61,38 @@ describe("formatArrival", () => {
     const prediction = { arrival_time: null, departure_time: null, status: null };
 
     expect(formatArrival(prediction, now)).toBe("Unknown");
+  });
+});
+
+describe("isStalePrediction", () => {
+  const now = new Date("2026-08-26T22:00:00Z");
+
+  it("is not stale when the arrival time is in the future", () => {
+    const prediction = { arrival_time: "2026-08-26T22:05:00Z", departure_time: null };
+
+    expect(isStalePrediction(prediction, now)).toBe(false);
+  });
+
+  it("is not stale within the grace window just after the arrival time", () => {
+    const prediction = { arrival_time: "2026-08-26T21:59:30Z", departure_time: null };
+
+    expect(isStalePrediction(prediction, now)).toBe(false);
+  });
+
+  it("is stale well past the arrival time (the bug this guards against)", () => {
+    // This is the exact failure mode reported live: a badly-delayed
+    // vehicle's prediction was 20 minutes in the past, and the old
+    // Math.max(0, ...) clamp in minutesUntil turned that into "0 min" —
+    // displayed as "Arriving now" despite the vehicle being miles away.
+    const prediction = { arrival_time: "2026-08-26T21:40:00Z", departure_time: null };
+
+    expect(isStalePrediction(prediction, now)).toBe(true);
+  });
+
+  it("is never stale when there is no time at all", () => {
+    const prediction = { arrival_time: null, departure_time: null, status: "Delayed" };
+
+    expect(isStalePrediction(prediction, now)).toBe(false);
   });
 });
 

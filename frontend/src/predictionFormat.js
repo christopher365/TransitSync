@@ -30,6 +30,19 @@ const ROUTE_COLORS = {
   "Green-E": "#00843d",
 };
 
+// MBTA can briefly keep a just-passed prediction in its response (normal
+// clock/reporting lag), which is fine to still call "Arriving now." Beyond
+// this grace window, a negative time-until means the prediction itself is
+// unreliable — usually because the assigned vehicle is running well behind
+// where the prediction assumed — not that the vehicle is about to arrive.
+const STALE_GRACE_MS = 60_000;
+
+export function isStalePrediction(prediction, now = new Date()) {
+  const time = prediction.arrival_time ?? prediction.departure_time;
+  if (!time) return false;
+  return new Date(time) - now < -STALE_GRACE_MS;
+}
+
 export function routeColor(routeId) {
   return ROUTE_COLORS[routeId] ?? "#555555";
 }

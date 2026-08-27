@@ -213,6 +213,28 @@ Configured to allow any origin — there's no auth or cookies involved, and
 this only ever serves public transit data, so the usual "wildcard CORS is
 risky" concern doesn't really apply here.
 
+## Bug fix: stale predictions displayed as "Arriving now"
+
+**Found live:** clicking a prediction showing "Arriving now" isolated a
+vehicle that was actually miles from the stop. Root cause: `minutesUntil()`
+computed `Math.max(0, Math.round(diffMs / 60000))` — clamping *any* negative
+value (arrival time already in the past) to 0, with no distinction between
+"10 seconds late, basically arriving" and "this prediction is 20 minutes
+stale because the assigned vehicle is running very late." Both displayed
+identically as "Arriving now."
+
+**Fix:** `isStalePrediction()` treats a prediction as unreliable once its
+time is more than 60 seconds in the past (a small grace window survives,
+for normal clock/reporting lag) and `usePredictions` filters those out
+before anything else sees them — so the predictions list, the arrival-time
+formatting, and the route-highlighting derived from it all only ever see
+predictions worth trusting.
+
+**Caveat, stated honestly:** this fixes the specific clamping bug, but
+doesn't guarantee MBTA's own real-time predictions are always perfectly
+accurate — occasional live-transit-data imprecision is a real, upstream
+limitation this app can't fully eliminate, only avoid compounding.
+
 ## Highlighting a stop's routes: derived from live predictions, not a stops↔routes table
 
 **Context:** after adding stop search + predictions, the next ask was to

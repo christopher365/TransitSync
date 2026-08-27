@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { backendOrigin } from "./backendOrigin";
+import { isStalePrediction } from "./predictionFormat";
 
 const REFRESH_INTERVAL_MS = 15000;
 
@@ -25,7 +26,10 @@ export function usePredictions(stopId) {
         .then((response) => response.json())
         .then((data) => {
           if (!cancelled) {
-            setPredictions(data);
+            // Filtered here, once, so every consumer (the predictions list,
+            // and the map's route-highlighting derived from it) only ever
+            // sees predictions worth trusting.
+            setPredictions(data.filter((prediction) => !isStalePrediction(prediction)));
             setIsLoading(false);
           }
         })
