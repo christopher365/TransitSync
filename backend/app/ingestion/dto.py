@@ -21,3 +21,33 @@ class VehicleReading:
     speed: float | None
     current_status: str
     updated_at: datetime
+
+
+@dataclass(frozen=True)
+class StopReading:
+    """A transit stop exactly as MBTA reported it, before it becomes a
+    Stop database row. Same reasoning as VehicleReading above.
+    """
+
+    stop_id: str
+    name: str
+    latitude: float
+    longitude: float
+    wheelchair_boarding: int
+
+
+@dataclass(frozen=True)
+class PredictionReading:
+    """A predicted arrival/departure at one stop.
+
+    Never persisted — predictions are only meaningful for the next several
+    minutes, so they're fetched fresh from MBTA on demand rather than stored
+    like vehicle positions are.
+    """
+
+    route_id: str | None
+    trip_id: str | None
+    vehicle_id: str | None
+    arrival_time: datetime | None
+    departure_time: datetime | None
+    status: str | None

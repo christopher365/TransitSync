@@ -168,6 +168,51 @@ that builds and pushes the image to GitHub Container Registry (free, and
 authenticates via the repo's built-in `GITHUB_TOKEN` — no extra secrets
 needed) so that target can pull it.
 
+## Stop search + arrival predictions: REST, not another WebSocket channel
+
+**Context:** live-mapping every vehicle system-wide (the original feature)
+turned out not to answer a real question a person actually has — confirmed
+by testing the clustered/color-coded map live and getting direct feedback
+that it still had no *purpose*. "When's the next bus at my stop" is that
+real question, and MBTA exposes it via two more V3 endpoints: `/stops`
+(static reference data) and `/predictions` (live, per-stop).
+
+**Chosen:** two plain REST endpoints — `GET /api/stops?q=` (search, backed
+by our own `stops` table) and `GET /api/stops/{id}/predictions` (proxies
+live to MBTA, not persisted) — rather than extending the WebSocket.
+
+**Why REST here, when vehicles use a WebSocket:** the two data shapes are
+fundamentally different in access pattern. Vehicle positions are "everyone
+connected wants every update, continuously" — a natural fit for a
+server-push broadcast. Predictions are "one person wants this one stop's
+data, right now, on demand" — a natural fit for request/response; a
+WebSocket would mean the server tracks per-client subscriptions to specific
+stops for no real benefit over a simple GET the client can re-poll.
+
+**Stops are synced once at startup, not continuously polled:** unlike
+vehicle positions, stops essentially never change during a demo session.
+`StopSyncService` runs once when the app starts (alongside the
+`create_all()` schema bootstrap) rather than on `VehiclePoller`'s repeating
+cycle. `upsert()` makes re-running it safe on every restart.
+
+**Scoped to subway/light rail stops only** (MBTA route_type `0,1`): the
+full system has thousands of bus stops; syncing all of them needs pagination
+handling for comparatively little demo value. Trivial to widen later.
+
+**Predictions are never written to Postgres**: they're only meaningful for
+the next several minutes and change on every poll — persisting them would
+mean building staleness/expiry logic for data with no lasting value. Fetched
+live from MBTA on each request instead.
+
+**CORS was added at this point, not earlier:** the WebSocket handshake
+isn't subject to the browser's CORS checks, so nothing needed it while the
+WebSocket was the only thing the frontend talked to. Plain HTTP endpoints
+are subject to CORS, so `search_stops`/`get_stop_predictions` needed
+`CORSMiddleware` added to be reachable from the frontend's origin at all.
+Configured to allow any origin — there's no auth or cookies involved, and
+this only ever serves public transit data, so the usual "wildcard CORS is
+risky" concern doesn't really apply here.
+
 ## Frontend: React + Vite + Leaflet (added as step 10, outside the original roadmap)
 
 **Context:** the original planning session's roadmap (`CLAUDE.md`) never

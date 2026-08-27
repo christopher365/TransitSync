@@ -8,9 +8,10 @@ from sqlalchemy.pool import StaticPool
 from app.db.base import Base
 from app.db.models import VehiclePosition
 from app.main import create_app
+from tests.support import StubMbtaClient
 
 
-def build_test_app(poll_fn=None):
+def build_test_app(poll_fn=None, mbta_client=None):
     """An in-memory SQLite database shared across every session it hands
     out, via StaticPool + check_same_thread=False.
 
@@ -32,6 +33,7 @@ def build_test_app(poll_fn=None):
     app = create_app(
         engine=engine,
         session_factory=session_factory,
+        mbta_client=mbta_client if mbta_client is not None else StubMbtaClient(),
         poll_fn=poll_fn if poll_fn is not None else (lambda: []),
     )
     return app, session_factory

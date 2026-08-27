@@ -103,3 +103,87 @@ def test_sends_api_key_header_when_configured() -> None:
 def test_raises_on_empty_base_url() -> None:
     with pytest.raises(ValueError):
         MbtaClient(base_url="   ")
+
+
+STOP_PAYLOAD = {
+    "data": [
+        {
+            "id": "place-pktrm",
+            "type": "stop",
+            "attributes": {
+                "name": "Park Street",
+                "latitude": 42.3564,
+                "longitude": -71.0624,
+                "wheelchair_boarding": 1,
+            },
+        },
+        {
+            "id": "place-broken",
+            "type": "stop",
+            "attributes": {
+                # missing "name" on purpose: a malformed record to be skipped.
+                "latitude": 42.0,
+                "longitude": -71.0,
+            },
+        },
+    ]
+}
+
+
+def test_get_stops_parses_well_formed_records_and_filters_by_route_type() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/stops"
+        assert request.url.params["filter[route_type]"] == "0,1"
+        return httpx.Response(200, json=STOP_PAYLOAD)
+
+    client = make_client(handler)
+
+    readings = client.get_stops()
+
+    assert len(readings) == 1  # the malformed second record is dropped
+    assert readings[0].stop_id == "place-pktrm"
+    assert readings[0].name == "Park Street"
+
+
+PREDICTION_PAYLOAD = {
+    "data": [
+        {
+            "id": "prediction-1",
+            "type": "prediction",
+            "attributes": {
+                "arrival_time": "2026-08-25T12:05:00-04:00",
+                "departure_time": "2026-08-25T12:06:00-04:00",
+                "status": None,
+            },
+            "relationships": {
+                "route": {"data": {"id": "Red", "type": "route"}},
+                "trip": {"data": {"id": "trip-1", "type": "trip"}},
+                "vehicle": {"data": {"id": "y1234", "type": "vehicle"}},
+            },
+        }
+    ]
+}
+
+
+def test_get_predictions_parses_well_formed_records() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/predictions"
+        assert request.url.params["filter[stop]"] == "place-pktrm"
+        return httpx.Response(200, json=PREDICTION_PAYLOAD)
+
+    client = make_client(handler)
+
+    readings = client.get_predictions("place-pktrm")
+
+    assert len(readings) == 1
+    reading = readings[0]
+    assert reading.route_id == "Red"
+    assert reading.vehicle_id == "y1234"
+    assert reading.arrival_time == datetime.fromisoformat("2026-08-25T12:05:00-04:00")
+
+
+def test_get_predictions_raises_on_empty_stop_id() -> None:
+    client = make_client(lambda request: httpx.Response(200, json={"data": []}))
+
+    with pytest.raises(ValueError):
+        client.get_predictions("   ")
