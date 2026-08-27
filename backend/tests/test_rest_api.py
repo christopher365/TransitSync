@@ -5,13 +5,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.core.rate_limit import RateLimiter
 from app.db.base import Base
 from app.ingestion.dto import AlertReading, PredictionReading, StopReading
 from app.main import create_app
 from tests.support import StubMbtaClient
 
 
-def build_test_app(mbta_client=None):
+def build_test_app(mbta_client=None, rate_limiter=None):
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
@@ -25,6 +26,7 @@ def build_test_app(mbta_client=None):
         session_factory=session_factory,
         mbta_client=mbta_client if mbta_client is not None else StubMbtaClient(),
         poll_fn=lambda: [],
+        rate_limiter=rate_limiter,
     )
     return app
 
@@ -141,3 +143,60 @@ def test_get_alerts_returns_empty_list_when_none_active() -> None:
 
     assert response.status_code == 200
     assert response.json() == []
+
+
+def test_health_check_returns_ok_when_db_reachable() -> None:
+    app = build_test_app()
+
+    with TestClient(app) as client:
+        response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok", "db": "ok"}
+
+
+def test_health_check_returns_503_when_db_unreachable() -> None:
+    def broken_session_factory():
+        raise RuntimeError("db is down")
+
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+
+    app = create_app(
+        engine=engine,
+        session_factory=broken_session_factory,
+        mbta_client=StubMbtaClient(),
+        poll_fn=lambda: [],
+    )
+
+    with TestClient(app) as client:
+        response = client.get("/health")
+
+    assert response.status_code == 503
+    assert response.json() == {"status": "error", "db": "unreachable"}
+
+
+def test_health_check_is_never_rate_limited() -> None:
+    strict_limiter = RateLimiter(max_requests=1, window_seconds=60)
+    app = build_test_app(rate_limiter=strict_limiter)
+
+    with TestClient(app) as client:
+        for _ in range(5):
+            response = client.get("/health")
+            assert response.status_code == 200
+
+
+def test_api_requests_beyond_the_limit_get_a_429() -> None:
+    strict_limiter = RateLimiter(max_requests=2, window_seconds=60)
+    app = build_test_app(rate_limiter=strict_limiter)
+
+    with TestClient(app) as client:
+        client.get("/api/stops", params={"q": "park"})
+        client.get("/api/stops", params={"q": "park"})
+        response = client.get("/api/stops", params={"q": "park"})
+
+    assert response.status_code == 429

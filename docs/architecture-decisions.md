@@ -213,6 +213,48 @@ Configured to allow any origin — there's no auth or cookies involved, and
 this only ever serves public transit data, so the usual "wildcard CORS is
 risky" concern doesn't really apply here.
 
+## Production hardening: health check, structured logging, rate limiting
+
+**Context:** added deliberately as a "does this person think about running
+software in production, not just writing it" pass, prompted directly by a
+request to make the app read more like an industry product.
+
+**Health check (`GET /health`):** checks real DB connectivity (a lightweight
+`SELECT 1`), not just "is the process alive" — a service that's running but
+can't reach its database is still broken for a load balancer's purposes.
+Returns 503 (not 200) when the DB is unreachable, so orchestration tooling
+can actually detect the failure. `docker-compose.yml`'s backend service now
+has a real `healthcheck` using this endpoint (via Python's own
+`urllib.request`, not `curl` — not installed in the slim base image, and
+not worth adding just for this), and the frontend's `depends_on` now waits
+for backend to report healthy rather than just "started."
+
+**Structured (JSON) logging:** `JsonFormatter` emits one JSON object per log
+line (timestamp, level, logger, message, exception if present) instead of
+a plain-text traceback dump — what a real log aggregator (CloudWatch,
+Datadog, etc.) needs to parse fields instead of scraping text. Scoped
+deliberately to this app's own loggers (the `app.*` hierarchy, e.g. the
+poller's failure logs) via `logging.getLogger("app")`, not the root logger
+— reformatting Uvicorn's own request-access logs is a separate concern,
+and clobbering the root logger risks interfering with libraries that log
+through it for their own reasons.
+
+**Rate limiting:** a small hand-rolled `RateLimiter` (fixed window, per
+client IP, in-memory) rather than pulling in a library like `slowapi`.
+Chosen deliberately: the limiting logic here is genuinely simple, a
+hand-rolled version is fully explainable in an interview in a way "I
+imported a library" isn't, and it avoids a new dependency's compatibility
+risk against this project's pinned (very current) library versions.
+Applied via middleware scoped to `/api/*` only — `/health` stays exempt
+(orchestrators poll it frequently and shouldn't be throttled) and
+`/ws/vehicles` is a different ASGI scope entirely (WebSocket, not HTTP),
+so the HTTP-only middleware never touches it regardless. **Explicitly not
+sufficient for a real multi-instance deployment** — the in-memory counter
+doesn't survive a restart or get shared across processes; a production
+deployment with more than one backend instance would need a shared store
+(e.g. Redis) instead. Documented here rather than silently overstating
+what this actually protects against.
+
 ## Service alerts: a fourth MBTA data source, same pattern as predictions
 
 **Chosen:** `GET /api/stops/{id}/alerts` proxies MBTA's `/alerts` endpoint
