@@ -5,11 +5,22 @@ import { Legend } from "./Legend";
 import { StopSearch } from "./StopSearch";
 import { PredictionsPanel } from "./PredictionsPanel";
 import { useVehicleWebSocket } from "./useVehicleWebSocket";
+import { usePredictions } from "./usePredictions";
+import { distinctRouteIds } from "./predictionFormat";
 
 function App() {
   const { vehiclesById, isConnected } = useVehicleWebSocket();
   const [selectedStop, setSelectedStop] = useState(null);
+  const { predictions, isLoading: predictionsLoading } = usePredictions(selectedStop?.id);
   const vehicleCount = Object.keys(vehiclesById).length;
+
+  // Only start filtering once real predictions have actually loaded —
+  // otherwise selecting a stop would flash the map to empty for a moment,
+  // or stay empty forever for a stop with no active service right now.
+  const highlightedRouteIds =
+    selectedStop && !predictionsLoading && predictions.length > 0
+      ? distinctRouteIds(predictions)
+      : null;
 
   return (
     <div className="app">
@@ -22,8 +33,9 @@ function App() {
           </span>
         </div>
         <p className="header-subtitle">
-          Search a stop to see real upcoming arrivals, or watch every MBTA vehicle currently
-          running in the Boston area. Tracking <strong>{vehicleCount}</strong> vehicles.
+          Search a stop to see real upcoming arrivals and single out its vehicles on the map, or
+          watch every MBTA vehicle currently running in the Boston area. Tracking{" "}
+          <strong>{vehicleCount}</strong> vehicles.
         </p>
       </header>
       <div className="body">
@@ -33,11 +45,23 @@ function App() {
             onSelectStop={setSelectedStop}
             onClear={() => setSelectedStop(null)}
           />
-          {selectedStop && <PredictionsPanel stop={selectedStop} />}
+          {selectedStop && (
+            <PredictionsPanel predictions={predictions} isLoading={predictionsLoading} />
+          )}
           <Legend />
         </aside>
         <div className="map-container">
-          <VehicleMap vehiclesById={vehiclesById} selectedStop={selectedStop} />
+          {highlightedRouteIds && (
+            <div className="map-filter-banner">
+              Showing only {Array.from(highlightedRouteIds).join(", ")} vehicles serving{" "}
+              {selectedStop.name}
+            </div>
+          )}
+          <VehicleMap
+            vehiclesById={vehiclesById}
+            selectedStop={selectedStop}
+            highlightedRouteIds={highlightedRouteIds}
+          />
         </div>
       </div>
     </div>

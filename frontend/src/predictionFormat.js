@@ -33,3 +33,11 @@ const ROUTE_COLORS = {
 export function routeColor(routeId) {
   return ROUTE_COLORS[routeId] ?? "#555555";
 }
+
+// The set of routes actually serving a stop, derived from that stop's own
+// live predictions rather than a separate stops-to-routes lookup — MBTA
+// data already flowing through the app for the predictions panel doubles
+// as "what should the map highlight" with no extra backend work.
+export function distinctRouteIds(predictions) {
+  return new Set(predictions.map((prediction) => prediction.route_id).filter((id) => id != null));
+}

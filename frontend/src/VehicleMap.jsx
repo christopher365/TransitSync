@@ -53,8 +53,15 @@ function FlyToStop({ stop }) {
   return null;
 }
 
-export function VehicleMap({ vehiclesById, selectedStop }) {
-  const vehicles = Object.values(vehiclesById);
+export function VehicleMap({ vehiclesById, selectedStop, highlightedRouteIds }) {
+  const allVehicles = Object.values(vehiclesById);
+  // When a stop is selected and its predictions have loaded, singling out
+  // the routes that actually serve it is far more useful than showing
+  // every vehicle system-wide — this is what actually answers "where's my
+  // bus" instead of just "where is everything."
+  const vehicles = highlightedRouteIds
+    ? allVehicles.filter((vehicle) => highlightedRouteIds.has(vehicle.route_id))
+    : allVehicles;
 
   return (
     <MapContainer center={BOSTON_CENTER} zoom={12} style={{ height: "100%", width: "100%" }}>

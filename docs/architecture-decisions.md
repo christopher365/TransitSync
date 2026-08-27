@@ -213,6 +213,36 @@ Configured to allow any origin — there's no auth or cookies involved, and
 this only ever serves public transit data, so the usual "wildcard CORS is
 risky" concern doesn't really apply here.
 
+## Highlighting a stop's routes: derived from live predictions, not a stops↔routes table
+
+**Context:** after adding stop search + predictions, the next ask was to
+"single out" a searched stop's transit on the map — filter the system-wide
+vehicle view down to just the routes actually serving that stop.
+
+**Chosen:** the frontend derives the set of relevant route IDs directly from
+the stop's own predictions response it already has (`distinctRouteIds()` in
+`predictionFormat.js`), and filters the map's vehicle list to just those
+routes. No new backend endpoint.
+
+**Alternatives considered:** using the `stop_routes` junction table and
+`Route` model that already exist in the schema (`StopRepositoryInterface`
+even has `get_routes_for_stop()`). Rejected for now — that table has never
+actually been populated; doing so would mean syncing route↔stop
+associations from MBTA (e.g. `/routes?filter[stop]=`) as a new ingestion
+step, for a static answer to a question live predictions already answer for
+free. It's also arguably more correct: predictions reflect what's actually
+being routed to serve the stop right now (detours, service changes), where
+a static join only reflects the nominal schedule. Worth revisiting if a
+"routes serving this stop" fact is ever needed independent of live data.
+
+**Filtering, not dimming, when a highlight is active:** vehicles outside the
+highlighted set are removed entirely rather than shown at reduced opacity.
+Dimming would have looked reasonable for individual pins, but markers are
+clustered (see "Marker clustering" above) — a cluster bubble merges many
+vehicles into one circle, so there's no sensible way to partially dim
+"some of the vehicles inside this bubble." Filtering sidesteps that
+entirely and matches "singles out" more literally besides.
+
 ## Frontend: React + Vite + Leaflet (added as step 10, outside the original roadmap)
 
 **Context:** the original planning session's roadmap (`CLAUDE.md`) never

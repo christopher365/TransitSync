@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatArrival, minutesUntil, routeColor } from "./predictionFormat";
+import { distinctRouteIds, formatArrival, minutesUntil, routeColor } from "./predictionFormat";
 
 describe("minutesUntil", () => {
   it("returns null when there is no time", () => {
@@ -65,5 +65,23 @@ describe("routeColor", () => {
 
   it("returns a neutral fallback for an unknown route", () => {
     expect(routeColor("some-future-route")).toBe("#555555");
+  });
+});
+
+describe("distinctRouteIds", () => {
+  it("returns the unique set of route ids across predictions", () => {
+    const predictions = [{ route_id: "Red" }, { route_id: "Green-D" }, { route_id: "Red" }];
+
+    expect(distinctRouteIds(predictions)).toEqual(new Set(["Red", "Green-D"]));
+  });
+
+  it("ignores predictions with a missing route id", () => {
+    const predictions = [{ route_id: "Red" }, { route_id: null }];
+
+    expect(distinctRouteIds(predictions)).toEqual(new Set(["Red"]));
+  });
+
+  it("returns an empty set for no predictions", () => {
+    expect(distinctRouteIds([])).toEqual(new Set());
   });
 });

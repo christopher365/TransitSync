@@ -1,44 +1,6 @@
-import { useEffect, useState } from "react";
-import { backendOrigin } from "./backendOrigin";
 import { formatArrival, routeColor } from "./predictionFormat";
 
-const REFRESH_INTERVAL_MS = 15000;
-
-export function PredictionsPanel({ stop }) {
-  const [predictions, setPredictions] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    function load() {
-      fetch(`${backendOrigin()}/api/stops/${stop.id}/predictions`)
-        .then((response) => response.json())
-        .then((data) => {
-          if (!cancelled) {
-            setPredictions(data);
-            setIsLoading(false);
-          }
-        })
-        .catch(() => {
-          if (!cancelled) setIsLoading(false);
-        });
-    }
-
-    setIsLoading(true);
-    load();
-    // Predictions are fetched on demand (REST), not streamed — polling on a
-    // plain interval is the simplest way to keep them "live" while a rider
-    // is actually looking at this one stop, without a dedicated WebSocket
-    // channel for something only one viewer at a time typically cares about.
-    const interval = setInterval(load, REFRESH_INTERVAL_MS);
-
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, [stop.id]);
-
+export function PredictionsPanel({ predictions, isLoading }) {
   return (
     <div className="predictions-panel">
       <div className="predictions-header">Upcoming arrivals</div>
