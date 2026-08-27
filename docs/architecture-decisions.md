@@ -168,6 +168,85 @@ that builds and pushes the image to GitHub Container Registry (free, and
 authenticates via the repo's built-in `GITHUB_TOKEN` — no extra secrets
 needed) so that target can pull it.
 
+## Frontend: React + Vite + Leaflet (added as step 10, outside the original roadmap)
+
+**Context:** the original planning session's roadmap (`CLAUDE.md`) never
+included a frontend layer at all, despite the project being described as a
+"dashboard" — steps 1–9 only ever covered the backend. This gap surfaced
+once the backend was actually working end-to-end and there was no way to
+*see* it. Treated as a new, explicit step rather than silently squeezed into
+an existing one.
+
+**Chosen:** a separate React app (via Vite, not Create React App — Vite is
+the current standard, with a much faster dev server) using `react-leaflet`
+(a React wrapper around Leaflet) for the map, with free OpenStreetMap tiles.
+
+**Alternatives considered:**
+- *A plain HTML/JS page with vanilla Leaflet, served directly by FastAPI*:
+  simpler — no Node.js toolchain, no separate container, no build step. This
+  was the recommended default given the project's "simplest design that
+  works" and $0-budget constraints, but a proper React/Vite split was chosen
+  deliberately for being closer to how a real frontend/backend-split project
+  is portfolio-presented, accepting the added complexity (Node.js install,
+  a second Docker service, an `npm` toolchain) as a worthwhile trade.
+- *Mapbox / Google Maps* instead of Leaflet+OpenStreetMap: rejected outright
+  — both require an API key and have paid tiers past a free quota, which
+  risks violating the $0 budget constraint if usage ever grew; OpenStreetMap
+  tiles are free with no key required.
+- *TypeScript*: deferred for this pass to keep the amount of new material
+  (React itself, plus Vite, plus Leaflet) manageable in one step; the code
+  is written in a style that would translate to TypeScript easily later.
+
+## Marker clustering + status-color coding, not raw pins
+
+**Context:** the first working version of the map plotted one default blue
+Leaflet pin per vehicle. Tested live against real MBTA data (~550 vehicles
+system-wide), it rendered as an unreadable, overlapping blob with no way to
+tell what any given pin represented — confirmed by actually looking at it in
+a browser, not assumed.
+
+**Chosen:** `react-leaflet-cluster` groups nearby markers into a single
+numbered bubble that splits apart as you zoom in, and each individual marker
+is a small colored circle (a Leaflet `divIcon`, not the default pin) keyed
+to `current_status` (moving / stopped / approaching), with a `Legend`
+component explaining what the colors mean.
+
+**Why:** clustering is the standard fix for "too many map markers to read"
+— it's not a workaround, it's how every production map with this data
+density (transit apps, ride-share apps) handles it. Color-coding by status
+uses data already flowing through the pipeline (no backend change needed)
+to make each marker individually meaningful instead of decorative. Dropping
+the default pin image entirely also removed the earlier `_getIconUrl`
+bundler workaround, since a `divIcon` has no external image dependency at
+all — a case where the "better UX" choice was also the simpler code.
+
+## WebSocket URL: derived from the page's own host, not hardcoded
+
+**Chosen:** `useVehicleWebSocket.js` builds the WebSocket URL from
+`window.location.hostname` (the address actually used to load the page) if
+`VITE_WS_URL` isn't set, rather than hardcoding `localhost`.
+
+**Why:** hardcoding `localhost` would only ever work when the browser and
+the backend are the same machine. Since `window.location.hostname` is
+whatever address the *browser* used to load the page, a phone or another PC
+on the same network loading the dashboard via the host machine's LAN IP
+(e.g. `http://192.168.1.50:5173`) gets a WebSocket connection to
+`ws://192.168.1.50:8000/ws/vehicles` automatically — no per-device
+configuration needed to satisfy "view it from another computer."
+
+## Serving the built frontend with nginx, not Vite's dev server or Node
+
+**Chosen:** `frontend/Dockerfile` builds the production bundle with Node in
+one stage, then serves the resulting static files with `nginx:alpine` in the
+final image — no Node.js in the image that actually runs.
+
+**Why:** Vite's dev server is explicitly not meant for anything but local
+development (no production hardening, rebuilds on every file change). Once
+there's a static bundle, serving it needs nothing more than a file server;
+nginx is small, fast, and battle-tested for exactly this, and mirrors the
+same "don't ship the build toolchain in the runtime image" reasoning as the
+backend's multi-stage Dockerfile.
+
 ## Testing: pytest + in-memory SQLite, not a live Postgres in CI
 
 **Chosen:** repository/unit tests run against a fresh in-memory SQLite database

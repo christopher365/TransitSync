@@ -1,0 +1,126 @@
+#root {
+  width: 100%;
+  max-width: none;
+  border-inline: none;
+  text-align: initial;
+  min-height: 100vh;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  font-family: system-ui, sans-serif;
+}
+
+.header {
+  padding: 0.75rem 1.25rem;
+  background: #1a1a1a;
+  color: white;
+  flex-shrink: 0;
+}
+
+.header-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.header-subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: #c8c8c8;
+  max-width: 60ch;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.status-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: #888;
+}
+
+.status-pill.connected .status-dot {
+  background: #2ecc71;
+}
+
+.status-pill.disconnected .status-dot {
+  background: #e74c3c;
+}
+
+.map-container {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Custom vehicle marker: a small colored circle instead of Leaflet's
+   default pin, so color alone communicates vehicle status. */
+.vehicle-marker span {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.6);
+}
+
+.legend {
+  position: absolute;
+  bottom: 1.5rem;
+  right: 1rem;
+  z-index: 1000;
+  background: white;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  font-size: 0.8rem;
+  color: #222;
+  max-width: 220px;
+}
+
+.legend-title {
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.3rem;
+}
+
+.legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+  flex-shrink: 0;
+}
+
+.legend-hint {
+  margin-top: 0.4rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid #eee;
+  color: #666;
+  font-size: 0.72rem;
+}

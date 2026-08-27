@@ -1,0 +1,61 @@
+import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import "leaflet.markercluster/dist/MarkerCluster.css";
+import "leaflet.markercluster/dist/MarkerCluster.Default.css";
+
+const BOSTON_CENTER = [42.3601, -71.0589];
+
+// What each MBTA current_status value actually means, in plain language,
+// plus the color we use to represent it consistently between the map
+// markers and the Legend component.
+export const STATUS_INFO = {
+  IN_TRANSIT_TO: { label: "Moving", color: "#2ecc71" },
+  STOPPED_AT: { label: "Stopped at a stop", color: "#e67e22" },
+  INCOMING_AT: { label: "Approaching a stop", color: "#3498db" },
+};
+const UNKNOWN_STATUS = { label: "Status unknown", color: "#95a5a6" };
+
+// A small colored circle instead of Leaflet's default pin image: it's what
+// lets each marker communicate vehicle status at a glance, and sidesteps a
+// well-known Leaflet+bundler issue where the default pin's image paths
+// don't resolve correctly once Vite bundles everything.
+function vehicleIcon(status) {
+  const { color } = STATUS_INFO[status] ?? UNKNOWN_STATUS;
+  return L.divIcon({
+    className: "vehicle-marker",
+    html: `<span style="background:${color}"></span>`,
+    iconSize: [16, 16],
+  });
+}
+
+export function VehicleMap({ vehiclesById }) {
+  const vehicles = Object.values(vehiclesById);
+
+  return (
+    <MapContainer center={BOSTON_CENTER} zoom={12} style={{ height: "100%", width: "100%" }}>
+      <TileLayer
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      />
+      <MarkerClusterGroup chunkedLoading maxClusterRadius={60}>
+        {vehicles.map((vehicle) => (
+          <Marker
+            key={vehicle.vehicle_id}
+            position={[vehicle.latitude, vehicle.longitude]}
+            icon={vehicleIcon(vehicle.current_status)}
+          >
+            <Popup>
+              <strong>Vehicle {vehicle.vehicle_id}</strong>
+              <br />
+              Route: {vehicle.route_id ?? "unknown"}
+              <br />
+              {(STATUS_INFO[vehicle.current_status] ?? UNKNOWN_STATUS).label}
+            </Popup>
+          </Marker>
+        ))}
+      </MarkerClusterGroup>
+    </MapContainer>
+  );
+}
