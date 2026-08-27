@@ -328,6 +328,31 @@ vehicles into one circle, so there's no sensible way to partially dim
 "some of the vehicles inside this bubble." Filtering sidesteps that
 entirely and matches "singles out" more literally besides.
 
+## Deployment target: Render (app hosting) + Neon (Postgres)
+
+**Chosen:** Render's free tier for both the backend (Docker web service)
+and frontend (static site), with an external free-tier Postgres (Neon or
+Supabase) rather than Render's own Postgres.
+
+**Why not Render's own Postgres:** its free tier has historically expired
+after 90 days, requiring manual recreation — a bad fit for a portfolio
+project meant to stay up indefinitely without maintenance. Neon/Supabase's
+free tiers don't have that expiry.
+
+**Prerequisite fix — `VITE_API_BASE_URL`:** the frontend's backend-URL
+derivation (`backendOrigin()`) assumed frontend and backend always share a
+host, with the backend on port 8000 — true for local dev and
+docker-compose, false once they're deployed to separate domains entirely.
+Added an explicit override env var so this works in both cases from the
+same code path, rather than branching on "are we deployed."
+
+**Known free-tier trade-off, stated honestly:** Render's free web services
+spin down after 15 minutes of inactivity and take tens of seconds to wake
+on the next request. While spun down, `VehiclePoller` isn't running, so
+vehicle data goes stale until something wakes the service back up. This is
+an accepted limitation of $0 hosting for a portfolio demo, not a bug —
+worth knowing about rather than being surprised by during a live demo.
+
 ## Frontend: React + Vite + Leaflet (added as step 10, outside the original roadmap)
 
 **Context:** the original planning session's roadmap (`CLAUDE.md`) never

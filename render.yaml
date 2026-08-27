@@ -1,0 +1,37 @@
+# Render "Blueprint" — infrastructure as code for this project's deployment.
+# Render's exact blueprint schema evolves over time; treat this as a
+# well-informed starting point to check against Render's current docs at
+# deploy time, not a guaranteed-exact spec. The actual walkthrough this
+# project used was Render's dashboard UI directly, which self-documents
+# whatever fields it currently expects.
+#
+# Postgres is deliberately NOT defined here — this project uses an external
+# free-tier Postgres (Neon or Supabase), per the $0-budget / avoid-lock-in
+# reasoning in docs/architecture-decisions.md, not Render's own Postgres
+# (whose free tier historically expires after 90 days).
+
+services:
+  - type: web
+    name: transitsync-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false # set manually in the Render dashboard — your Neon/Supabase connection string
+      - key: MBTA_API_BASE_URL
+        value: https://api-v3.mbta.com
+      - key: MBTA_API_KEY
+        sync: false # optional — unauthenticated requests work at a lower rate limit
+
+  - type: web
+    name: transitsync-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false # set to the backend service's real URL once it's deployed

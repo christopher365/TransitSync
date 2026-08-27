@@ -10,7 +10,7 @@ function defaultWsUrl() {
   return `${backendOrigin().replace(/^http/, "ws")}/ws/vehicles`;
 }
 
-export function useVehicleWebSocket(url = import.meta.env.VITE_WS_URL || defaultWsUrl()) {
+export function useVehicleWebSocket(url = defaultWsUrl()) {
   const [vehiclesById, setVehiclesById] = useState({});
   const [isConnected, setIsConnected] = useState(false);
 
