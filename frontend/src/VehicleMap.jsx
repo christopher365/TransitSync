@@ -5,6 +5,8 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
+import { formatSpeedMph, formatUpdatedAgo } from "./vehicleState";
+import { routeColor } from "./predictionFormat";
 
 const BOSTON_CENTER = [42.3601, -71.0589];
 
@@ -71,7 +73,13 @@ function FlyToVehicle({ vehicle }) {
   return null;
 }
 
-export function VehicleMap({ vehiclesById, selectedStop, highlightedRouteIds, selectedVehicleId }) {
+export function VehicleMap({
+  vehiclesById,
+  selectedStop,
+  highlightedRouteIds,
+  selectedVehicleId,
+  onSelectVehicle,
+}) {
   const allVehicles = Object.values(vehiclesById);
   const isolatedVehicle = selectedVehicleId ? vehiclesById[selectedVehicleId] : null;
 
@@ -94,21 +102,44 @@ export function VehicleMap({ vehiclesById, selectedStop, highlightedRouteIds, se
       <FlyToStop stop={selectedStop} />
       <FlyToVehicle vehicle={isolatedVehicle} />
       <MarkerClusterGroup chunkedLoading maxClusterRadius={60}>
-        {vehicles.map((vehicle) => (
-          <Marker
-            key={vehicle.vehicle_id}
-            position={[vehicle.latitude, vehicle.longitude]}
-            icon={vehicleIcon(vehicle.current_status)}
-          >
-            <Popup>
-              <strong>Vehicle {vehicle.vehicle_id}</strong>
-              <br />
-              Route: {vehicle.route_id ?? "unknown"}
-              <br />
-              {(STATUS_INFO[vehicle.current_status] ?? UNKNOWN_STATUS).label}
-            </Popup>
-          </Marker>
-        ))}
+        {vehicles.map((vehicle) => {
+          const speedMph = formatSpeedMph(vehicle.speed);
+          const isTracked = vehicle.vehicle_id === selectedVehicleId;
+
+          return (
+            <Marker
+              key={vehicle.vehicle_id}
+              position={[vehicle.latitude, vehicle.longitude]}
+              icon={vehicleIcon(vehicle.current_status)}
+            >
+              <Popup>
+                <div className="vehicle-popup">
+                  <div
+                    className="vehicle-popup-route"
+                    style={{ background: routeColor(vehicle.route_id) }}
+                  >
+                    Route {vehicle.route_id ?? "unknown"}
+                  </div>
+                  <div className="vehicle-popup-line">
+                    {(STATUS_INFO[vehicle.current_status] ?? UNKNOWN_STATUS).label}
+                    {speedMph != null && ` — ${speedMph} mph`}
+                  </div>
+                  <div className="vehicle-popup-meta">
+                    Vehicle {vehicle.vehicle_id} · updated {formatUpdatedAgo(vehicle.updated_at)}
+                  </div>
+                  {onSelectVehicle && (
+                    <button
+                      className="vehicle-popup-track"
+                      onClick={() => onSelectVehicle(vehicle.vehicle_id)}
+                    >
+                      {isTracked ? "Stop tracking" : "Track this vehicle"}
+                    </button>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
       </MarkerClusterGroup>
       {selectedStop && (
         <Marker

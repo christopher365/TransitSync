@@ -82,6 +82,13 @@ function App() {
             <div className="map-filter-banner">
               Showing only vehicle {isolatedVehicle.vehicle_id} (
               {isolatedVehicle.route_id ?? "unknown route"})
+              <button
+                className="banner-clear"
+                onClick={() => setSelectedVehicleId(null)}
+                aria-label="Stop tracking this vehicle"
+              >
+                ✕
+              </button>
             </div>
           )}
           {!isolatedVehicle && highlightedRouteIds && (
@@ -95,6 +102,7 @@ function App() {
             selectedStop={selectedStop}
             highlightedRouteIds={highlightedRouteIds}
             selectedVehicleId={selectedVehicleId}
+            onSelectVehicle={handleSelectVehicle}
           />
         </div>
       </div>

@@ -328,6 +328,35 @@ vehicles into one circle, so there's no sensible way to partially dim
 "some of the vehicles inside this bubble." Filtering sidesteps that
 entirely and matches "singles out" more literally besides.
 
+## Bug fix: header title nearly invisible in light mode
+
+**Found live** on the deployed app: the "TransitSync" title looked
+invisible against its dark header. Root cause: `.header h1` never declared
+its own `color`, so it fell through — per-property, not per-rule — to a
+leftover global `h1 { color: var(--text-h) }` rule still in `index.css`
+from Vite's original scaffold template. `--text-h` flips between near-white
+and near-black based on the visitor's OS `prefers-color-scheme`, so on a
+system in light mode the title rendered as near-black text on a near-black
+background. Fixed by declaring `color` explicitly on `.header h1` — a
+deliberately fixed dark header should never depend on the visitor's system
+theme in the first place.
+
+## Vehicle popups: made actually useful, not just a static label
+
+**Context:** direct feedback that the map marker popup was too sparse to
+be useful. It previously showed only vehicle ID, route, and status text.
+
+**Chosen:** the popup now shows speed (converted from MBTA's meters/second
+to mph — nobody reads m/s at a glance), how long ago the position was last
+updated (directly relevant after the earlier stale-prediction incident — a
+rider can now judge data freshness themselves instead of trusting it
+blindly), and a **"Track this vehicle"** button that isolates just that
+vehicle on the map — the same mechanism a prediction click already used,
+now reachable directly from the map itself too. Clicking it again (or the
+new ✕ on the isolation banner) clears it, since there was previously no way
+to undo an isolation that started from a map click rather than a prediction
+row.
+
 ## Bug fix: bare `postgresql://` URLs crashing the app at startup
 
 **Found deploying to Render:** the first real deploy against Neon crashed
