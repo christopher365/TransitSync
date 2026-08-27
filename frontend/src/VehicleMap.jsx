@@ -123,6 +123,9 @@ export function VehicleMap({
                   <div className="vehicle-popup-line">
                     {(STATUS_INFO[vehicle.current_status] ?? UNKNOWN_STATUS).label}
                     {speedMph != null && ` — ${speedMph} mph`}
+                    {speedMph == null &&
+                      vehicle.estimatedSpeedMph != null &&
+                      ` — ~${vehicle.estimatedSpeedMph} mph (estimated)`}
                   </div>
                   <div className="vehicle-popup-meta">
                     Vehicle {vehicle.vehicle_id} · updated {formatUpdatedAgo(vehicle.updated_at)}

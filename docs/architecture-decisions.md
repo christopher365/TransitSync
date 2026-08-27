@@ -328,6 +328,31 @@ vehicles into one circle, so there's no sensible way to partially dim
 "some of the vehicles inside this bubble." Filtering sidesteps that
 entirely and matches "singles out" more literally besides.
 
+## Client-side speed estimation when MBTA doesn't report one
+
+**Context:** direct follow-up after adding "updated Xs ago" freshness —
+the vehicle shown had no MBTA-reported speed at all (common for
+generic/shuttle vehicles), leaving a gap the popup couldn't fill.
+
+**Chosen:** estimate it client-side from two consecutive position reports
+— haversine distance between the last two points, divided by the time
+between their `updated_at` timestamps — computed in `applyVehicleUpdate`
+(`vehicleState.js`) at the exact moment a new position arrives, since the
+previous position for that vehicle is already sitting right there in
+state. Zero new backend work: no new endpoint, no new stored data, just
+math over what was already flowing through.
+
+**Deliberately a fallback, not a replacement:** only computed when
+MBTA's own `speed` field is null — MBTA's figure reflects real
+instrumentation and the actual road path; a two-point straight-line
+estimate can't match that and shouldn't override it. Displayed as
+"~X mph (estimated)", never presented as if it were MBTA's own figure.
+
+**Guarded against jitter:** estimates aren't computed for reports less
+than 3 seconds apart (below the app's own ~5s poll cadence) — GPS noise
+at that scale would dominate the distance measurement and could produce a
+confidently-wrong number, which is worse than showing nothing.
+
 ## Bug fix: header title nearly invisible in light mode
 
 **Found live** on the deployed app: the "TransitSync" title looked
