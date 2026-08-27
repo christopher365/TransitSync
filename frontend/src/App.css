@@ -197,14 +197,50 @@
 }
 
 .prediction-row {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0.4rem 0;
+  padding: 0 0.4rem;
+  border-radius: 6px;
 }
 
 .prediction-row + .prediction-row {
   border-top: 1px solid #eee;
+}
+
+.prediction-row.selected {
+  background: #eaf3ff;
+  border-top-color: transparent;
+}
+
+.prediction-button,
+.prediction-static {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.4rem 0;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+}
+
+.prediction-button {
+  cursor: pointer;
+}
+
+.prediction-button:hover {
+  opacity: 0.8;
+}
+
+.prediction-hint {
+  margin-left: auto;
+  font-size: 0.7rem;
+  color: #888;
+  white-space: nowrap;
+}
+
+.prediction-row.selected .prediction-hint {
+  color: #2266cc;
+  font-weight: 600;
 }
 
 .route-badge {

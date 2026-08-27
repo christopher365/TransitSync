@@ -11,6 +11,7 @@ import { distinctRouteIds } from "./predictionFormat";
 function App() {
   const { vehiclesById, isConnected } = useVehicleWebSocket();
   const [selectedStop, setSelectedStop] = useState(null);
+  const [selectedVehicleId, setSelectedVehicleId] = useState(null);
   const { predictions, isLoading: predictionsLoading } = usePredictions(selectedStop?.id);
   const vehicleCount = Object.keys(vehiclesById).length;
 
@@ -21,6 +22,23 @@ function App() {
     selectedStop && !predictionsLoading && predictions.length > 0
       ? distinctRouteIds(predictions)
       : null;
+
+  const isolatedVehicle = selectedVehicleId ? vehiclesById[selectedVehicleId] : null;
+
+  function handleSelectStop(stop) {
+    setSelectedStop(stop);
+    setSelectedVehicleId(null);
+  }
+
+  function handleClearStop() {
+    setSelectedStop(null);
+    setSelectedVehicleId(null);
+  }
+
+  function handleSelectVehicle(vehicleId) {
+    // Clicking the already-selected prediction toggles it back off.
+    setSelectedVehicleId((current) => (current === vehicleId ? null : vehicleId));
+  }
 
   return (
     <div className="app">
@@ -42,16 +60,27 @@ function App() {
         <aside className="sidebar">
           <StopSearch
             selectedStop={selectedStop}
-            onSelectStop={setSelectedStop}
-            onClear={() => setSelectedStop(null)}
+            onSelectStop={handleSelectStop}
+            onClear={handleClearStop}
           />
           {selectedStop && (
-            <PredictionsPanel predictions={predictions} isLoading={predictionsLoading} />
+            <PredictionsPanel
+              predictions={predictions}
+              isLoading={predictionsLoading}
+              selectedVehicleId={selectedVehicleId}
+              onSelectVehicle={handleSelectVehicle}
+            />
           )}
           <Legend />
         </aside>
         <div className="map-container">
-          {highlightedRouteIds && (
+          {isolatedVehicle && (
+            <div className="map-filter-banner">
+              Showing only vehicle {isolatedVehicle.vehicle_id} (
+              {isolatedVehicle.route_id ?? "unknown route"})
+            </div>
+          )}
+          {!isolatedVehicle && highlightedRouteIds && (
             <div className="map-filter-banner">
               Showing only {Array.from(highlightedRouteIds).join(", ")} vehicles serving{" "}
               {selectedStop.name}
@@ -61,6 +90,7 @@ function App() {
             vehiclesById={vehiclesById}
             selectedStop={selectedStop}
             highlightedRouteIds={highlightedRouteIds}
+            selectedVehicleId={selectedVehicleId}
           />
         </div>
       </div>

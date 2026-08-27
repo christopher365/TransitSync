@@ -53,15 +53,37 @@ function FlyToStop({ stop }) {
   return null;
 }
 
-export function VehicleMap({ vehiclesById, selectedStop, highlightedRouteIds }) {
+// Same idea as FlyToStop, but for a single isolated vehicle. Depends only
+// on vehicle_id (not the vehicle object itself, which gets a new reference
+// on every ~5s position update) — otherwise the map would re-fly and jump
+// every time that vehicle's position refreshed, instead of just once when
+// it's first selected.
+function FlyToVehicle({ vehicle }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (vehicle) {
+      map.flyTo([vehicle.latitude, vehicle.longitude], 16);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vehicle?.vehicle_id, map]);
+
+  return null;
+}
+
+export function VehicleMap({ vehiclesById, selectedStop, highlightedRouteIds, selectedVehicleId }) {
   const allVehicles = Object.values(vehiclesById);
-  // When a stop is selected and its predictions have loaded, singling out
-  // the routes that actually serve it is far more useful than showing
-  // every vehicle system-wide — this is what actually answers "where's my
-  // bus" instead of just "where is everything."
-  const vehicles = highlightedRouteIds
-    ? allVehicles.filter((vehicle) => highlightedRouteIds.has(vehicle.route_id))
-    : allVehicles;
+  const isolatedVehicle = selectedVehicleId ? vehiclesById[selectedVehicleId] : null;
+
+  // Isolating one specific vehicle (clicked from a prediction) takes
+  // priority over the broader route-level filter; falling back to the
+  // route filter if the vehicle isn't found (e.g. not yet live-tracked)
+  // avoids the map going misleadingly blank.
+  const vehicles = isolatedVehicle
+    ? [isolatedVehicle]
+    : highlightedRouteIds
+      ? allVehicles.filter((vehicle) => highlightedRouteIds.has(vehicle.route_id))
+      : allVehicles;
 
   return (
     <MapContainer center={BOSTON_CENTER} zoom={12} style={{ height: "100%", width: "100%" }}>
@@ -70,6 +92,7 @@ export function VehicleMap({ vehiclesById, selectedStop, highlightedRouteIds }) 
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <FlyToStop stop={selectedStop} />
+      <FlyToVehicle vehicle={isolatedVehicle} />
       <MarkerClusterGroup chunkedLoading maxClusterRadius={60}>
         {vehicles.map((vehicle) => (
           <Marker
