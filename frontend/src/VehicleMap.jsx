@@ -1,4 +1,5 @@
-import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import { useEffect } from "react";
+import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -30,7 +31,29 @@ function vehicleIcon(status) {
   });
 }
 
-export function VehicleMap({ vehiclesById }) {
+const stopIcon = L.divIcon({
+  className: "stop-marker",
+  html: "<span></span>",
+  iconSize: [20, 20],
+});
+
+// A selected stop should visibly move the map to where it is, not just add
+// a marker somewhere the user may not be looking. react-leaflet's map
+// instance is only reachable via this hook, from a component rendered
+// inside <MapContainer> — it can't be done from VehicleMap's own props.
+function FlyToStop({ stop }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (stop) {
+      map.flyTo([stop.latitude, stop.longitude], 16);
+    }
+  }, [stop, map]);
+
+  return null;
+}
+
+export function VehicleMap({ vehiclesById, selectedStop }) {
   const vehicles = Object.values(vehiclesById);
 
   return (
@@ -39,6 +62,7 @@ export function VehicleMap({ vehiclesById }) {
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+      <FlyToStop stop={selectedStop} />
       <MarkerClusterGroup chunkedLoading maxClusterRadius={60}>
         {vehicles.map((vehicle) => (
           <Marker
@@ -56,6 +80,15 @@ export function VehicleMap({ vehiclesById }) {
           </Marker>
         ))}
       </MarkerClusterGroup>
+      {selectedStop && (
+        <Marker
+          position={[selectedStop.latitude, selectedStop.longitude]}
+          icon={stopIcon}
+          zIndexOffset={1000}
+        >
+          <Popup>{selectedStop.name}</Popup>
+        </Marker>
+      )}
     </MapContainer>
   );
 }

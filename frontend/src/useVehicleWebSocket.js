@@ -1,15 +1,13 @@
 import { useEffect, useState } from "react";
+import { backendOrigin } from "./backendOrigin";
 import { applyVehicleUpdate } from "./vehicleState";
 
 const RECONNECT_DELAY_MS = 3000;
 
 function defaultWsUrl() {
-  // Deriving the host from the page's own URL (rather than hardcoding
-  // "localhost") means a phone or another PC on the same network can load
-  // this page via the host machine's LAN IP and the WebSocket connects to
-  // that same address automatically — no per-device configuration needed.
-  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-  return `${protocol}://${window.location.hostname}:8000/ws/vehicles`;
+  // Reuses the same host-derivation as REST calls (see backendOrigin), just
+  // swapped to the ws(s):// scheme a WebSocket needs.
+  return `${backendOrigin().replace(/^http/, "ws")}/ws/vehicles`;
 }
 
 export function useVehicleWebSocket(url = import.meta.env.VITE_WS_URL || defaultWsUrl()) {

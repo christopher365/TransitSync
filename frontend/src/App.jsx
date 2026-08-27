@@ -1,10 +1,14 @@
+import { useState } from "react";
 import "./App.css";
 import { VehicleMap } from "./VehicleMap";
 import { Legend } from "./Legend";
+import { StopSearch } from "./StopSearch";
+import { PredictionsPanel } from "./PredictionsPanel";
 import { useVehicleWebSocket } from "./useVehicleWebSocket";
 
 function App() {
   const { vehiclesById, isConnected } = useVehicleWebSocket();
+  const [selectedStop, setSelectedStop] = useState(null);
   const vehicleCount = Object.keys(vehiclesById).length;
 
   return (
@@ -18,14 +22,23 @@ function App() {
           </span>
         </div>
         <p className="header-subtitle">
-          Live positions of every MBTA bus, train, and shuttle currently running in the Boston
-          area — updated automatically every few seconds. Currently tracking{" "}
-          <strong>{vehicleCount}</strong> vehicles.
+          Search a stop to see real upcoming arrivals, or watch every MBTA vehicle currently
+          running in the Boston area. Tracking <strong>{vehicleCount}</strong> vehicles.
         </p>
       </header>
-      <div className="map-container">
-        <VehicleMap vehiclesById={vehiclesById} />
-        <Legend />
+      <div className="body">
+        <aside className="sidebar">
+          <StopSearch
+            selectedStop={selectedStop}
+            onSelectStop={setSelectedStop}
+            onClear={() => setSelectedStop(null)}
+          />
+          {selectedStop && <PredictionsPanel stop={selectedStop} />}
+          <Legend />
+        </aside>
+        <div className="map-container">
+          <VehicleMap vehiclesById={vehiclesById} selectedStop={selectedStop} />
+        </div>
       </div>
     </div>
   );

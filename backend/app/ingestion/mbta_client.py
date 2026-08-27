@@ -59,7 +59,9 @@ class MbtaClient:
         response = self._http_client.get(
             f"{self._base_url}/predictions",
             headers=self._headers(),
-            params={"filter[stop]": stop_id, "sort": "arrival_time"},
+            # A busy stop can have 50+ predictions queued; the UI only ever
+            # shows the next handful, so there's no reason to transfer more.
+            params={"filter[stop]": stop_id, "sort": "arrival_time", "page[limit]": 10},
         )
         response.raise_for_status()
 

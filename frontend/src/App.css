@@ -36,7 +36,7 @@
   margin: 0.25rem 0 0;
   font-size: 0.85rem;
   color: #c8c8c8;
-  max-width: 60ch;
+  max-width: 65ch;
 }
 
 .status-pill {
@@ -65,14 +65,148 @@
   background: #e74c3c;
 }
 
-.map-container {
-  position: relative;
+.body {
+  display: flex;
   flex: 1;
   min-height: 0;
 }
 
-/* Custom vehicle marker: a small colored circle instead of Leaflet's
-   default pin, so color alone communicates vehicle status. */
+.sidebar {
+  width: 320px;
+  flex-shrink: 0;
+  background: #fafafa;
+  border-right: 1px solid #ddd;
+  padding: 1rem;
+  overflow-y: auto;
+  color: #222;
+}
+
+.map-container {
+  flex: 1;
+  min-height: 0;
+}
+
+/* --- Stop search --- */
+
+.stop-search label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #555;
+  margin-bottom: 0.4rem;
+}
+
+.stop-search-input-row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.stop-search input {
+  flex: 1;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.clear-button {
+  border: none;
+  background: #eee;
+  border-radius: 6px;
+  width: 2rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.stop-results {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  overflow: hidden;
+  background: white;
+}
+
+.stop-results li + li {
+  border-top: 1px solid #eee;
+}
+
+.stop-results button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.stop-results button:hover {
+  background: #f0f0f0;
+}
+
+/* --- Predictions --- */
+
+.predictions-panel {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #ddd;
+}
+
+.predictions-header {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #555;
+  margin-bottom: 0.5rem;
+}
+
+.predictions-empty {
+  font-size: 0.85rem;
+  color: #777;
+  margin: 0;
+}
+
+.predictions-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.prediction-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0;
+}
+
+.prediction-row + .prediction-row {
+  border-top: 1px solid #eee;
+}
+
+.route-badge {
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  min-width: 2.5rem;
+  text-align: center;
+}
+
+.prediction-time {
+  font-size: 0.9rem;
+  color: #222;
+}
+
+/* --- Map markers --- */
+
 .vehicle-marker span {
   display: block;
   width: 14px;
@@ -82,18 +216,25 @@
   box-shadow: 0 0 3px rgba(0, 0, 0, 0.6);
 }
 
+.stop-marker span {
+  display: block;
+  width: 14px;
+  height: 14px;
+  background: #222;
+  border: 3px solid white;
+  border-radius: 3px;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
+  transform: rotate(45deg);
+  margin: 3px;
+}
+
+/* --- Legend (a plain sidebar block now, not a floating overlay) --- */
+
 .legend {
-  position: absolute;
-  bottom: 1.5rem;
-  right: 1rem;
-  z-index: 1000;
-  background: white;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #ddd;
   font-size: 0.8rem;
-  color: #222;
-  max-width: 220px;
 }
 
 .legend-title {
