@@ -6,3 +6,4 @@ backend/.coverage
 backend/*.egg-info/
 .env
 node_modules/
+CLAUDE.md
