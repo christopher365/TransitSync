@@ -4,8 +4,10 @@ import { VehicleMap } from "./VehicleMap";
 import { Legend } from "./Legend";
 import { StopSearch } from "./StopSearch";
 import { PredictionsPanel } from "./PredictionsPanel";
+import { AlertsBanner } from "./AlertsBanner";
 import { useVehicleWebSocket } from "./useVehicleWebSocket";
 import { usePredictions } from "./usePredictions";
+import { useAlerts } from "./useAlerts";
 import { distinctRouteIds } from "./predictionFormat";
 
 function App() {
@@ -13,6 +15,7 @@ function App() {
   const [selectedStop, setSelectedStop] = useState(null);
   const [selectedVehicleId, setSelectedVehicleId] = useState(null);
   const { predictions, isLoading: predictionsLoading } = usePredictions(selectedStop?.id);
+  const { alerts } = useAlerts(selectedStop?.id);
   const vehicleCount = Object.keys(vehiclesById).length;
 
   // Only start filtering once real predictions have actually loaded —
@@ -63,6 +66,7 @@ function App() {
             onSelectStop={handleSelectStop}
             onClear={handleClearStop}
           />
+          {selectedStop && <AlertsBanner alerts={alerts} />}
           {selectedStop && (
             <PredictionsPanel
               predictions={predictions}

@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.db.base import Base
-from app.ingestion.dto import PredictionReading, StopReading
+from app.ingestion.dto import AlertReading, PredictionReading, StopReading
 from app.main import create_app
 from tests.support import StubMbtaClient
 
@@ -104,6 +104,40 @@ def test_get_predictions_returns_empty_list_when_none_available() -> None:
 
     with TestClient(app) as client:
         response = client.get("/api/stops/place-pktrm/predictions")
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_get_alerts_returns_mbta_client_results() -> None:
+    stub_client = StubMbtaClient(
+        alerts=[
+            AlertReading(
+                alert_id="12345",
+                header="Orange Line: delays of up to 10 minutes",
+                effect="DELAY",
+                severity=5,
+                cause="SIGNAL_PROBLEM",
+            )
+        ]
+    )
+    app = build_test_app(mbta_client=stub_client)
+
+    with TestClient(app) as client:
+        response = client.get("/api/stops/place-bbsta/alerts")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["effect"] == "DELAY"
+    assert body[0]["severity"] == 5
+
+
+def test_get_alerts_returns_empty_list_when_none_active() -> None:
+    app = build_test_app()
+
+    with TestClient(app) as client:
+        response = client.get("/api/stops/place-pktrm/alerts")
 
     assert response.status_code == 200
     assert response.json() == []

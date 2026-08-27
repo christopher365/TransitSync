@@ -3,7 +3,7 @@ from typing import Any
 
 import httpx
 
-from app.ingestion.dto import PredictionReading, StopReading, VehicleReading
+from app.ingestion.dto import AlertReading, PredictionReading, StopReading, VehicleReading
 
 # Limits the stop sync to subway/light rail (MBTA's own route_type codes:
 # 0 = light rail, 1 = heavy rail) instead of the entire system. MBTA's bus
@@ -69,6 +69,24 @@ class MbtaClient:
         parsed = (_parse_prediction(item) for item in payload.get("data", []))
         return [reading for reading in parsed if reading is not None]
 
+    def get_alerts(self, stop_id: str) -> list[AlertReading]:
+        if not stop_id or not stop_id.strip():
+            raise ValueError("stop_id must be a non-empty string")
+
+        response = self._http_client.get(
+            f"{self._base_url}/alerts",
+            headers=self._headers(),
+            # filter[datetime]=NOW restricts to alerts actually active right
+            # now, not ones scheduled for some other time; sorting by
+            # -severity puts the most disruptive alert first.
+            params={"filter[stop]": stop_id, "filter[datetime]": "NOW", "sort": "-severity"},
+        )
+        response.raise_for_status()
+
+        payload = response.json()
+        parsed = (_parse_alert(item) for item in payload.get("data", []))
+        return [reading for reading in parsed if reading is not None]
+
     def _headers(self) -> dict[str, str]:
         return {"x-api-key": self._api_key} if self._api_key else {}
 
@@ -118,6 +136,20 @@ def _parse_prediction(item: dict[str, Any]) -> PredictionReading | None:
             arrival_time=_parse_optional_datetime(attributes.get("arrival_time")),
             departure_time=_parse_optional_datetime(attributes.get("departure_time")),
             status=attributes.get("status"),
+        )
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def _parse_alert(item: dict[str, Any]) -> AlertReading | None:
+    try:
+        attributes = item["attributes"]
+        return AlertReading(
+            alert_id=item["id"],
+            header=attributes["header"],
+            effect=attributes.get("effect"),
+            severity=attributes.get("severity"),
+            cause=attributes.get("cause"),
         )
     except (KeyError, TypeError, ValueError):
         return None

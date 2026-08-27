@@ -167,6 +167,37 @@
   background: #f0f0f0;
 }
 
+/* --- Alerts --- */
+
+.alerts-banner {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.alert-row {
+  border-left: 4px solid;
+  background: #fff8f0;
+  padding: 0.5rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.alert-effect {
+  display: block;
+  font-weight: 700;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.15rem;
+}
+
+.alert-header {
+  color: #333;
+  line-height: 1.3;
+}
+
 /* --- Predictions --- */
 
 .predictions-panel {

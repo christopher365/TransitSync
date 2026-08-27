@@ -187,3 +187,50 @@ def test_get_predictions_raises_on_empty_stop_id() -> None:
 
     with pytest.raises(ValueError):
         client.get_predictions("   ")
+
+
+ALERT_PAYLOAD = {
+    "data": [
+        {
+            "id": "12345",
+            "type": "alert",
+            "attributes": {
+                "header": "Orange Line: delays of up to 10 minutes due to signal problems",
+                "effect": "DELAY",
+                "severity": 5,
+                "cause": "SIGNAL_PROBLEM",
+            },
+        },
+        {
+            "id": "67890",
+            "type": "alert",
+            "attributes": {
+                # missing "header" on purpose: a malformed record to be skipped.
+                "effect": "ELEVATOR_CLOSURE",
+            },
+        },
+    ]
+}
+
+
+def test_get_alerts_parses_well_formed_records() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/alerts"
+        assert request.url.params["filter[stop]"] == "place-bbsta"
+        assert request.url.params["filter[datetime]"] == "NOW"
+        return httpx.Response(200, json=ALERT_PAYLOAD)
+
+    client = make_client(handler)
+
+    readings = client.get_alerts("place-bbsta")
+
+    assert len(readings) == 1  # the malformed second record is dropped
+    assert readings[0].effect == "DELAY"
+    assert readings[0].severity == 5
+
+
+def test_get_alerts_raises_on_empty_stop_id() -> None:
+    client = make_client(lambda request: httpx.Response(200, json={"data": []}))
+
+    with pytest.raises(ValueError):
+        client.get_alerts("")

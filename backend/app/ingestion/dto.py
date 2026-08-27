@@ -51,3 +51,18 @@ class PredictionReading:
     arrival_time: datetime | None
     departure_time: datetime | None
     status: str | None
+
+
+@dataclass(frozen=True)
+class AlertReading:
+    """An active service alert (delay, detour, elevator outage, etc.).
+
+    Never persisted, same reasoning as PredictionReading: only meaningful
+    while active, so fetched fresh from MBTA rather than stored.
+    """
+
+    alert_id: str
+    header: str
+    effect: str | None
+    severity: int | None
+    cause: str | None

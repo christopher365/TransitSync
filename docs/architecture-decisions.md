@@ -213,6 +213,27 @@ Configured to allow any origin — there's no auth or cookies involved, and
 this only ever serves public transit data, so the usual "wildcard CORS is
 risky" concern doesn't really apply here.
 
+## Service alerts: a fourth MBTA data source, same pattern as predictions
+
+**Chosen:** `GET /api/stops/{id}/alerts` proxies MBTA's `/alerts` endpoint
+live (never persisted — same reasoning as predictions: only meaningful
+while active), filtered to `filter[datetime]=NOW` so only currently-active
+alerts show, sorted `-severity` so the most disruptive one leads.
+
+**Why this matters beyond "another endpoint":** verified against real data,
+Back Bay currently has an active severity-7 Orange Line suspension (Oak
+Grove–Back Bay, shuttle bus replacement) — which plausibly explains the
+earlier "Arriving now but miles away" bug report: with that segment
+suspended, real vehicle/trip assignments near Back Bay are legitimately
+unusual right now. Surfacing the alert turns a confusing anomaly into an
+understood, explained one — exactly the kind of context a rider actually
+needs and official apps lead with.
+
+**Severity bucketing, not a raw 0–10 number:** the frontend (`alertFormat.js`)
+groups MBTA's severity scale into three bands (severe/moderate/minor) for
+color-coding, rather than surfacing the raw integer — a rider needs "how
+much should I care," not a precise score to interpret themselves.
+
 ## Bug fix: stale predictions displayed as "Arriving now"
 
 **Found live:** clicking a prediction showing "Arriving now" isolated a

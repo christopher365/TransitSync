@@ -4,10 +4,11 @@ class StubMbtaClient:
     test app never depends on the network being reachable.
     """
 
-    def __init__(self, vehicles=None, stops=None, predictions=None):
+    def __init__(self, vehicles=None, stops=None, predictions=None, alerts=None):
         self._vehicles = vehicles or []
         self._stops = stops or []
         self._predictions = predictions or []
+        self._alerts = alerts or []
 
     def get_vehicles(self):
         return self._vehicles
@@ -17,3 +18,6 @@ class StubMbtaClient:
 
     def get_predictions(self, stop_id):
         return self._predictions
+
+    def get_alerts(self, stop_id):
+        return self._alerts

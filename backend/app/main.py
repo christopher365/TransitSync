@@ -19,6 +19,7 @@ from app.ingestion.stop_sync_service import StopSyncService
 from app.ingestion.vehicle_ingestion_service import VehicleIngestionService
 from app.realtime.connection_manager import ConnectionManager
 from app.realtime.poller import VehiclePoller
+from app.schemas.alert import AlertOut
 from app.schemas.prediction import PredictionOut
 from app.schemas.stop import StopOut
 from app.schemas.vehicle_position import VehiclePositionOut
@@ -136,6 +137,10 @@ def create_app(
         # asyncio.to_thread is used explicitly elsewhere in this file — so
         # this blocking HTTP call doesn't need that wrapping here too.
         return mbta_client.get_predictions(stop_id)
+
+    @app.get("/api/stops/{stop_id}/alerts", response_model=list[AlertOut])
+    def get_stop_alerts(stop_id: str) -> list[AlertOut]:
+        return mbta_client.get_alerts(stop_id)
 
     return app
 
